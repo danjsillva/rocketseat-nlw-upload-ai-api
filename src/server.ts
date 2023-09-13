@@ -44,7 +44,11 @@ const server = Bun.serve({
 
       const { prompt } = body;
 
-      return new Response(JSON.stringify({ videoId, prompt }), {
+      const video = await prisma.video.findUniqueOrThrow({
+        where: { id: videoId },
+      });
+
+      return new Response(JSON.stringify({ video, prompt }), {
         headers: { "content-type": "application/json" },
       });
     }
