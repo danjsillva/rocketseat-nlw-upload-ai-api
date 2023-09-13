@@ -5,9 +5,10 @@ const server = Bun.serve({
   async fetch(req) {
     const url = new URL(req.url);
 
-    if (url.pathname === "/") return new Response("Bun!");
+    if (req.method === "GET" && url.pathname === "/")
+      return new Response("Bun!");
 
-    if (url.pathname === "/prompts") {
+    if (req.method === "GET" && url.pathname === "/prompts") {
       const prompts = await prisma.prompt.findMany();
 
       return new Response(JSON.stringify(prompts), {
@@ -15,17 +16,37 @@ const server = Bun.serve({
       });
     }
 
-    if (url.pathname === "/videos" && req.method === "POST") {
+    if (req.method === "POST" && url.pathname === "/videos") {
       const formdata = await req.formData();
       const file = formdata.get("file");
 
       if (!file) throw new Error("No file provided");
 
       const name = Math.random().toString(36).substring(2, 10).toUpperCase();
+      const path = `tmp/${name}.mp3`;
 
-      await Bun.write(`tmp/${name}.mp3`, file);
+      await Bun.write(path, file);
 
-      return new Response("Success");
+      const video = await prisma.video.create({ data: { name, path } });
+
+      return new Response(JSON.stringify(video), {
+        headers: { "content-type": "application/json" },
+      });
+    }
+
+    if (
+      req.method === "POST" &&
+      url.pathname.startsWith("/videos/") &&
+      url.pathname.endsWith("/transcription")
+    ) {
+      const videoId = url.pathname.split("/").at(-2);
+      const body = await req.json();
+
+      const { prompt } = body;
+
+      return new Response(JSON.stringify({ videoId, prompt }), {
+        headers: { "content-type": "application/json" },
+      });
     }
 
     return new Response("404!");
