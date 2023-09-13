@@ -19,9 +19,11 @@ const server = Bun.serve({
       const formdata = await req.formData();
       const file = formdata.get("file");
 
-      if (!file) throw new Error("Must upload a MP3 file.");
+      if (!file) throw new Error("No file provided");
 
-      await Bun.write("teste.mp3", file);
+      const name = Math.random().toString(36).substring(2, 10).toUpperCase();
+
+      await Bun.write(`tmp/${name}.mp3`, file);
 
       return new Response("Success");
     }
